@@ -11,9 +11,17 @@ from pywow import wdbc
 
 
 class WDBCClient(QApplication):
+	name = "WDBC Reader"
+	
 	def __init__(self, argv):
 		QApplication.__init__(self, argv)
+		
+		QTextCodec.setCodecForCStrings(QTextCodec.codecForName("UTF-8"))
+		
 		self.mainWindow = MainWindow()
+		self.mainWindow.setWindowTitle(self.name)
+		self.mainWindow.resize(1024, 768)
+		self.mainWindow.setMinimumSize(640, 480)
 		
 		arguments = OptionParser()
 		arguments.add_option("-b", "--build", type="int", dest="build", default=0)
@@ -21,75 +29,90 @@ class WDBCClient(QApplication):
 		
 		args, files = arguments.parse_args(argv[1:])
 		
+		self.defaultBuild = args.build
+		
 		for name in files:
 			if args.get:
-				file = wdbc.get(name, args.build)
+				self.get(path)
 			else:
 				file = wdbc.fopen(name, args.build)
 			
 			self.mainWindow.setFile(file)
+	
+	def get(self, path):
+		f = wdbc.get(path, self.defaultBuild)
+		self.mainWindow.model.setFile(f)
+		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
+	
+	def open(self, path):
+		f = wdbc.fopen(path, self.defaultBuild)
+		self.mainWindow.model.setFile(f)
+		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
 
 class MainWindow(QMainWindow):
 	def __init__(self, *args):
 		QMainWindow.__init__(self, *args)
-		self.resize(1332, 886)
-		self.setMinimumSize(640, 480)
 		
-		def openFile():
-			filename, filters = QFileDialog.getOpenFileName(self, "Open file", "/var/www/sigrie/caches", "DBC/Cache files (*.dbc *.wdb *.db2 *.dba *.wcf)")
-			if filename:
-				file = wdbc.fopen(filename)
-				self.setFile(file)
-		
-		def reopen():
-			current = self.file.build
-			build, ok = QInputDialog.getInt(self, "Reopen as build...", "Build number", value=current, minValue=-1)
-			if ok and build != current:
-				file = wdbc.fopen(self.file.file.name, build)
-				self.setFile(file)
-		
-		fileMenu = self.menuBar().addMenu("&File")
-		fileMenu.addAction("Open", openFile, "Ctrl+O")
-		fileMenu.addAction("Reopen as build...", reopen, "Ctrl+B")
-		fileMenu.addAction("Exit", self, SLOT("close()"), "Ctrl+Q")
+		self.__addMenus()
+		self.__addToolbar()
 		
 		centralWidget = QWidget(self)
 		self.setCentralWidget(centralWidget)
 		
 		verticalLayout = QVBoxLayout(centralWidget)
-		self.maintable = MainTable(centralWidget)
+		self.mainTable = MainTable(centralWidget)
 		tabWidget = QTabWidget()
-		#tabWidget.setDocumentMode(True)
-		#tabWidget.setMovable(True)
-		tabWidget.addTab(self.maintable, "Untitled")
+		tabWidget.setDocumentMode(True)
+		tabWidget.setMovable(True)
+		tabWidget.addTab(self.mainTable, "Untitled")
 		verticalLayout.addWidget(tabWidget)
+	
+	def __addMenus(self):
+		fileMenu = self.menuBar().addMenu("&File")
+		fileMenu.addAction(QIcon.fromTheme("document-open"), "&Open...", self.actionOpen, "Ctrl+O")
+		fileMenu.addAction("Change &build", self.actionChangeBuild, "Ctrl+B")
+		fileMenu.addAction(QIcon.fromTheme("document-open-recent"), "Open &Recent").setDisabled(True)
+		fileMenu.addSeparator()
+		fileMenu.addAction(QIcon.fromTheme("window-close"), "&Close", lambda: None, "Ctrl-W")
+		fileMenu.addSeparator()
+		fileMenu.addAction(QIcon.fromTheme("application-exit"), "&Quit", self.close, "Ctrl+Q")
+		
+		helpMenu = self.menuBar().addMenu("&Help")
+		helpMenu.addAction(QIcon.fromTheme("help-about"), "About")
+	
+	def __addToolbar(self):
+		toolbar = self.addToolBar("Toolbar")
+		toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+		toolbar.addAction(QIcon.fromTheme("document-open"), "Open").triggered.connect(self.actionOpen)
+	
+	def actionChangeBuild(self):
+		current = self.file.build
+		build, ok = QInputDialog.getInt(self, "Change build", "Build number", value=current, minValue=-1)
+		if ok and build != current:
+			file = wdbc.fopen(self.file.file.name, build)
+			self.setFile(file)
+	
+	def actionOpen(self):
+		filename, filters = QFileDialog.getOpenFileName(self, "Open file", "/var/www/sigrie/caches", "DBC/Cache files (*.dbc *.wdb *.db2 *.dba *.wcf)")
+		if filename:
+			file = wdbc.fopen(filename)
+			self.setFile(file)
 	
 	def setFile(self, file):
 		self.file = file
-		self.setWindowTitle("%s - Sigrie Reader" % (file.file.name))
-		self.maintable.setFile(file)
-		msg = "%i rows - Using %s build %i" % (len(file), file.structure, file.build)
+		self.mainTable.model().setFile(file)
+		msg = "%i rows - Using %s build %i" % (self.mainTable.model().rowCount(), file.structure, file.build)
 		self.statusBar().showMessage(msg)
 
 
-class MainTable(QWidget):
+class MainTable(QTableView):
 	def __init__(self, *args):
-		QWidget.__init__(self, *args)
+		QTableView.__init__(self, *args)
 		
-		# create table
-		self.table = table = QTableView()
-		table.setModel(TableModel(self))
-		table.verticalHeader().setVisible(True)
-		table.setSortingEnabled(True)
-		table.verticalHeader().setDefaultSectionSize(25)
-		
-		# layout
-		layout = QVBoxLayout()
-		layout.addWidget(table)
-		self.setLayout(layout)
-	
-	def setFile(self, file):
-		return self.table.model().setFile(file)
+		self.setModel(TableModel(self))
+		self.verticalHeader().setVisible(True)
+		self.setSortingEnabled(True)
+		self.verticalHeader().setDefaultSectionSize(25)
 
 def price(value):
 	"""
@@ -106,61 +129,65 @@ def price(value):
 class TableModel(QAbstractTableModel):
 	def __init__(self, *args):
 		QAbstractTableModel.__init__(self, *args)
-		self.table_data = []
-		self.header_data = []
+		self.itemData = []
+		self.rootData = []
 
 	def columnCount(self, parent):
-		return len(self.header_data)
-	
-	def rowCount(self, parent):
-		return len(self.table_data)
+		return len(self.rootData)
 	
 	def data(self, index, role):
-		if not index.isValid() or role != Qt.DisplayRole:
+		if not index.isValid():
 			return
 		
-		cell = self.table_data[index.row()][index.column()]
-		field = self.structure[index.column()]
-		
-		if isinstance(field, wdbc.structures.HashField) or isinstance(field, wdbc.structures.DataField):
-			cell = hexlify(cell)
-		
-		elif isinstance(field, wdbc.structures.BitMaskField):
-			if cell is not None:
-				cell = "0x%x" % (cell)
-		
-		elif isinstance(field, wdbc.structures.MoneyField):
-			gold, silver, copper = price(int(cell))
+		if role == Qt.DisplayRole:
+			cell = self.itemData[index.row()][index.column()]
+			field = self.structure[index.column()]
 			
-			gold = gold and "%ig" % (gold)
-			silver = silver and "%is" % (silver)
-			copper = copper and "%ic" % (copper)
+			if isinstance(field, wdbc.structures.HashField) or isinstance(field, wdbc.structures.DataField):
+				cell = hexlify(cell)
 			
-			cell = " ".join(x for x in [gold, silver, copper] if x) or "0c"
-		
-		
-		if isinstance(cell, str) and len(cell) > 200:
-			cell = cell[:200] + "..."
-		
-		return cell
+			elif isinstance(field, wdbc.structures.BitMaskField):
+				if cell is not None:
+					cell = "0x%08x" % (cell)
+			
+			elif isinstance(field, wdbc.structures.MoneyField):
+				gold, silver, copper = price(int(cell))
+				
+				gold = gold and "%ig" % (gold)
+				silver = silver and "%is" % (silver)
+				copper = copper and "%ic" % (copper)
+				
+				cell = " ".join(x for x in (gold, silver, copper) if x) or "0c"
+			
+			# Limit data within cells for performance reasons
+			if isinstance(cell, str) and len(cell) > 200:
+				cell = cell[:200] + "..."
+			
+			return cell
 	
-	def headerData(self, col, orientation, role):
+	def headerData(self, section, orientation, role):
 		if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-			return self.header_data[col]
-		return QAbstractTableModel.headerData(self, col, orientation, role)
+			return self.rootData[section]
+		
+		return QAbstractItemModel.headerData(self, section, orientation, role)
+	
+	def rowCount(self, parent=QModelIndex()):
+		if parent.isValid():
+			return 0
+		return len(self.itemData)
 	
 	def setFile(self, file):
 		self.emit(SIGNAL("layoutAboutToBeChanged()"))
-		self.table_data = file.rows()
-		self.header_data = file.structure.column_names
+		self.itemData = file.rows()
+		self.rootData = file.structure.column_names
 		self.structure = file.structure
 		self.emit(SIGNAL("layoutChanged()"))
 
 	def sort(self, column, order):
 		self.emit(SIGNAL("layoutAboutToBeChanged()"))
-		self.table_data = sorted(self.table_data, key=operator.itemgetter(column))
+		self.itemData = sorted(self.itemData, key=operator.itemgetter(column))
 		if order == Qt.AscendingOrder:
-			self.table_data.reverse()
+			self.itemData.reverse()
 		self.emit(SIGNAL("layoutChanged()"))
 
 
