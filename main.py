@@ -56,16 +56,12 @@ class MainWindow(QMainWindow):
 		self.__addMenus()
 		self.__addToolbar()
 		
-		centralWidget = QWidget(self)
-		self.setCentralWidget(centralWidget)
-		
-		verticalLayout = QVBoxLayout(centralWidget)
-		self.mainTable = MainTable(centralWidget)
-		tabWidget = QTabWidget()
-		tabWidget.setDocumentMode(True)
-		tabWidget.setMovable(True)
-		tabWidget.addTab(self.mainTable, "Untitled")
-		verticalLayout.addWidget(tabWidget)
+		self.tabWidget = QTabWidget()
+		self.tabWidget.setDocumentMode(True)
+		self.tabWidget.setMovable(True)
+		self.setCentralWidget(self.tabWidget)
+		self.mainTable = MainTable()
+		self.tabWidget.addTab(self.mainTable, "Untitled")
 	
 	def __addMenus(self):
 		fileMenu = self.menuBar().addMenu("&File")
