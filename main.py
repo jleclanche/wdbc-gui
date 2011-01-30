@@ -10,6 +10,19 @@ from PySide.QtGui import *
 from pywow import wdbc
 
 
+def price(value):
+	"""
+	Helper for MoneyField
+	TODO use pywow.game.items.price
+	"""
+	if not value:
+		return 0, 0, 0
+	g = divmod(value, 10000)[0]
+	s = divmod(value, 100)[0] % 100
+	c = value % 100
+	return g, s, c
+
+
 class WDBCClient(QApplication):
 	name = "WDBC Reader"
 	
@@ -26,28 +39,26 @@ class WDBCClient(QApplication):
 		arguments = OptionParser()
 		arguments.add_option("-b", "--build", type="int", dest="build", default=0)
 		arguments.add_option("--get", action="store_true", dest="get", help="get from the environment")
-		
 		args, files = arguments.parse_args(argv[1:])
-		
 		self.defaultBuild = args.build
+		
+		self.mainWindow.statusBar().showMessage("Ready")
 		
 		for name in files:
 			if args.get:
-				self.get(path)
+				self.get(name) # XXX
 			else:
-				file = wdbc.fopen(name, args.build)
-			
-			self.mainWindow.setFile(file)
+				self.open(name)
 	
 	def get(self, path):
 		f = wdbc.get(path, self.defaultBuild)
-		self.mainWindow.model.setFile(f)
+		self.mainWindow.currentModel().setFile(f)
 		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
 	
 	def open(self, path):
-		f = wdbc.fopen(path, self.defaultBuild)
-		self.mainWindow.model.setFile(f)
+		self.mainWindow.addTab(wdbc.fopen(path, self.defaultBuild))
 		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
+
 
 class MainWindow(QMainWindow):
 	def __init__(self, *args):
@@ -60,8 +71,6 @@ class MainWindow(QMainWindow):
 		self.tabWidget.setDocumentMode(True)
 		self.tabWidget.setMovable(True)
 		self.setCentralWidget(self.tabWidget)
-		self.mainTable = MainTable()
-		self.tabWidget.addTab(self.mainTable, "Untitled")
 	
 	def __addMenus(self):
 		fileMenu = self.menuBar().addMenu("&File")
@@ -82,45 +91,38 @@ class MainWindow(QMainWindow):
 		toolbar.addAction(QIcon.fromTheme("document-open"), "Open").triggered.connect(self.actionOpen)
 	
 	def actionChangeBuild(self):
-		current = self.file.build
+		file = self.currentModel().file
+		current = file.build
 		build, ok = QInputDialog.getInt(self, "Change build", "Build number", value=current, minValue=-1)
 		if ok and build != current:
-			file = wdbc.fopen(self.file.file.name, build)
-			self.setFile(file)
+			self.currentModel().setFile(wdbc.fopen(file.file.name, build))
 	
 	def actionOpen(self):
 		filename, filters = QFileDialog.getOpenFileName(self, "Open file", "/var/www/sigrie/caches", "DBC/Cache files (*.dbc *.wdb *.db2 *.dba *.wcf)")
 		if filename:
 			file = wdbc.fopen(filename)
-			self.setFile(file)
+			self.addTab(file)
 	
-	def setFile(self, file):
-		self.file = file
-		self.mainTable.model().setFile(file)
-		msg = "%i rows - Using %s build %i" % (self.mainTable.model().rowCount(), file.structure, file.build)
-		self.statusBar().showMessage(msg)
+	def addTab(self, file):
+		view = TableView()
+		model = TableModel()
+		model.setFile(file)
+		view.setModel(model)
+		view._m_model = model # BUG
+		self.tabWidget.addTab(view, QIcon.fromTheme("x-office-spreadsheet"), os.path.basename(file.file.name))
+	
+	def currentModel(self):
+		view = self.tabWidget.currentWidget()
+		return view._m_model # BUG
 
 
-class MainTable(QTableView):
+class TableView(QTableView):
 	def __init__(self, *args):
 		QTableView.__init__(self, *args)
-		
-		self.setModel(TableModel(self))
-		self.verticalHeader().setVisible(True)
 		self.setSortingEnabled(True)
+		self.verticalHeader().setVisible(True)
 		self.verticalHeader().setDefaultSectionSize(25)
 
-def price(value):
-	"""
-	Helper for MoneyField
-	TODO use pywow.game.items.price
-	"""
-	if not value:
-		return 0, 0, 0
-	g = divmod(value, 10000)[0]
-	s = divmod(value, 100)[0] % 100
-	c = value % 100
-	return g, s, c
 
 class TableModel(QAbstractTableModel):
 	def __init__(self, *args):
@@ -174,9 +176,12 @@ class TableModel(QAbstractTableModel):
 	
 	def setFile(self, file):
 		self.emit(SIGNAL("layoutAboutToBeChanged()"))
+		self.file = file
 		self.itemData = file.rows()
 		self.rootData = file.structure.column_names
 		self.structure = file.structure
+		msg = "%i rows - Using %s build %i" % (self.rowCount(), file.structure, file.build)
+		qApp.mainWindow.statusBar().showMessage(msg)
 		self.emit(SIGNAL("layoutChanged()"))
 
 	def sort(self, column, order):
