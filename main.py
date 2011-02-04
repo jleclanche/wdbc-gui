@@ -46,13 +46,12 @@ class WDBCClient(QApplication):
 		
 		for name in files:
 			if args.get:
-				self.get(name) # XXX
+				self.openByGet(name)
 			else:
 				self.open(name)
 	
-	def get(self, path):
-		f = wdbc.get(path, self.defaultBuild)
-		self.mainWindow.currentModel().setFile(f)
+	def openByGet(self, path):
+		self.mainWindow.addTab(wdbc.get(path, self.defaultBuild))
 		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
 	
 	def open(self, path):
