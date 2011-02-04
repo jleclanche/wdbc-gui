@@ -198,7 +198,7 @@ class TableModel(QAbstractTableModel):
 		qApp.mainWindow.statusBar().showMessage(msg)
 		self.emit(SIGNAL("layoutChanged()"))
 
-	def sort(self, column, order):
+	def sort(self, column, order=Qt.AscendingOrder):
 		self.emit(SIGNAL("layoutAboutToBeChanged()"))
 		self.itemData = sorted(self.itemData, key=operator.itemgetter(column))
 		if order == Qt.AscendingOrder:
