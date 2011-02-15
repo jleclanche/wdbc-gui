@@ -189,21 +189,21 @@ class TableModel(QAbstractTableModel):
 		return len(self.itemData)
 	
 	def setFile(self, file):
-		self.emit(SIGNAL("layoutAboutToBeChanged()"))
+		self.layoutAboutToBeChanged.emit()
 		self.file = file
 		self.itemData = file.rows()
 		self.rootData = file.structure.column_names
 		self.structure = file.structure
 		msg = "%i rows - Using %s build %i" % (self.rowCount(), file.structure, file.build)
 		qApp.mainWindow.statusBar().showMessage(msg)
-		self.emit(SIGNAL("layoutChanged()"))
+		self.layoutChanged.emit()
 
 	def sort(self, column, order=Qt.AscendingOrder):
-		self.emit(SIGNAL("layoutAboutToBeChanged()"))
+		self.layoutAboutToBeChanged.emit()
 		self.itemData = sorted(self.itemData, key=operator.itemgetter(column))
 		if order == Qt.AscendingOrder:
 			self.itemData.reverse()
-		self.emit(SIGNAL("layoutChanged()"))
+		self.layoutChanged.emit()
 
 
 def main():
