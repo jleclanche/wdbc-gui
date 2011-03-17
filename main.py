@@ -97,6 +97,7 @@ class MainWindow(QMainWindow):
 		toolbar = self.addToolBar("Toolbar")
 		toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 		toolbar.addAction(QIcon.fromTheme("document-open"), "Open").triggered.connect(self.actionOpen)
+		toolbar.addAction(QIcon.fromTheme("x-office-spreadsheet"), "Export...").triggered.connect(self.actionExportData)
 	
 	def actionChangeBuild(self):
 		file = self.currentModel().file
@@ -110,6 +111,14 @@ class MainWindow(QMainWindow):
 		del widget.model().file
 		del widget
 		self.tabWidget.removeTab(index)
+	
+	def actionExportData(self):
+		with open("out.csv", "w") as f:
+			f.write(",".join(self.currentModel().rootData))
+			f.write("\n")
+			for row in self.currentModel().itemData:
+				f.write(",".join(str(x) for x in row))
+				f.write("\n")
 	
 	def actionOpen(self):
 		filename, filters = QFileDialog.getOpenFileName(self, "Open file", "/var/www/sigrie/caches", "DBC/Cache files (*.dbc *.wdb *.db2 *.dba *.wcf)")
@@ -143,7 +152,7 @@ class TableModel(QAbstractTableModel):
 		QAbstractTableModel.__init__(self, *args)
 		self.itemData = []
 		self.rootData = []
-
+	
 	def columnCount(self, parent):
 		return len(self.rootData)
 	
@@ -197,7 +206,7 @@ class TableModel(QAbstractTableModel):
 		msg = "%i rows - Using %s build %i" % (self.rowCount(), file.structure, file.build)
 		qApp.mainWindow.statusBar().showMessage(msg)
 		self.layoutChanged.emit()
-
+	
 	def sort(self, column, order=Qt.AscendingOrder):
 		self.layoutAboutToBeChanged.emit()
 		self.itemData = sorted(self.itemData, key=operator.itemgetter(column))
