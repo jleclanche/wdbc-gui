@@ -4,7 +4,7 @@
 import operator
 import os
 from binascii import hexlify
-from optparse import OptionParser
+from argparse import ArgumentParser
 from PySide.QtCore import *
 from PySide.QtGui import *
 from pywow import wdbc
@@ -36,15 +36,16 @@ class WDBCClient(QApplication):
 		self.mainWindow.resize(1024, 768)
 		self.mainWindow.setMinimumSize(640, 480)
 		
-		arguments = OptionParser()
-		arguments.add_option("-b", "--build", type="int", dest="build", default=0)
-		arguments.add_option("--get", action="store_true", dest="get", help="get from the environment")
-		args, files = arguments.parse_args(argv[1:])
+		arguments = ArgumentParser()
+		arguments.add_argument("-b", "--build", type=int, dest="build", default=0)
+		arguments.add_argument("--get", action="store_true", dest="get", help="get from the environment")
+		arguments.add_argument("files", nargs="+")
+		args = arguments.parse_args(argv[1:])
 		self.defaultBuild = args.build
 		
 		self.mainWindow.statusBar().showMessage("Ready")
 		
-		for name in files:
+		for name in args.files:
 			if args.get:
 				self.openByGet(name)
 			else:
