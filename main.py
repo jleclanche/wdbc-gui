@@ -39,7 +39,7 @@ class WDBCClient(QApplication):
 		arguments = ArgumentParser(prog="wdbc")
 		arguments.add_argument("-b", "--build", type=int, dest="build", default=0)
 		arguments.add_argument("--get", action="store_true", dest="get", help="get from the environment")
-		arguments.add_argument("files", nargs="+")
+		arguments.add_argument("files", nargs="*")
 		args = arguments.parse_args(argv[1:])
 		self.defaultBuild = args.build
 		
