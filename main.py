@@ -97,7 +97,7 @@ class MainWindow(QMainWindow):
 		toolbar = self.addToolBar("Toolbar")
 		toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 		toolbar.addAction(QIcon.fromTheme("document-open"), "Open").triggered.connect(self.actionOpen)
-		toolbar.addAction(QIcon.fromTheme("x-office-spreadsheet"), "Export...").triggered.connect(self.actionExportData)
+		toolbar.addAction(QIcon.fromTheme("x-office-spreadsheet"), "Export").triggered.connect(self.actionExportData)
 	
 	def actionChangeBuild(self):
 		file = self.currentModel().file
@@ -113,12 +113,15 @@ class MainWindow(QMainWindow):
 		self.tabWidget.removeTab(index)
 	
 	def actionExportData(self):
-		with open("out.csv", "w") as f:
-			f.write(",".join(self.currentModel().rootData))
-			f.write("\n")
-			for row in self.currentModel().itemData:
-				f.write(",".join(str(x) for x in row))
+		basename, _ = os.path.splitext(self.currentModel().file.file.name)
+		filename, ok = QInputDialog.getText(self, "Choose a filename", "File name to export to", QLineEdit.Normal, "%s.csv" % (basename))
+		if ok and filename:
+			with open(filename, "w") as f:
+				f.write(",".join(self.currentModel().rootData))
 				f.write("\n")
+				for row in self.currentModel().itemData:
+					f.write(",".join(str(x) for x in row))
+					f.write("\n")
 	
 	def actionOpen(self):
 		filename, filters = QFileDialog.getOpenFileName(self, "Open file", "/var/www/sigrie/caches", "DBC/Cache files (*.dbc *.wdb *.db2 *.dba *.wcf)")
