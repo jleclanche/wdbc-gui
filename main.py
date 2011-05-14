@@ -36,7 +36,7 @@ class WDBCClient(QApplication):
 		self.mainWindow.resize(1024, 768)
 		self.mainWindow.setMinimumSize(640, 480)
 		
-		arguments = ArgumentParser()
+		arguments = ArgumentParser(prog="wdbc")
 		arguments.add_argument("-b", "--build", type=int, dest="build", default=0)
 		arguments.add_argument("--get", action="store_true", dest="get", help="get from the environment")
 		arguments.add_argument("files", nargs="+")
