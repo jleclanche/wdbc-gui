@@ -56,7 +56,7 @@ class WDBCClient(QApplication):
 		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
 	
 	def open(self, path):
-		self.mainWindow.addTab(wdbc.fopen(path, self.defaultBuild))
+		self.mainWindow.addTab(wdbc.open(path, self.defaultBuild))
 		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
 
 
@@ -105,7 +105,7 @@ class MainWindow(QMainWindow):
 		current = file.build
 		build, ok = QInputDialog.getInt(self, "Change build", "Build number", value=current, minValue=-1)
 		if ok and build != current:
-			self.currentModel().setFile(wdbc.fopen(file.file.name, build))
+			self.currentModel().setFile(wdbc.open(file.file.name, build))
 	
 	def actionCloseTab(self, index):
 		widget = self.tabWidget.widget(index)
@@ -127,7 +127,7 @@ class MainWindow(QMainWindow):
 	def actionOpen(self):
 		filename, filters = QFileDialog.getOpenFileName(self, "Open file", "/var/www/sigrie/caches", "DBC/Cache files (*.dbc *.wdb *.db2 *.dba *.wcf)")
 		if filename:
-			file = wdbc.fopen(filename)
+			file = wdbc.open(filename)
 			self.addTab(file)
 	
 	def addTab(self, file):
