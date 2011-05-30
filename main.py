@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os.path
 from argparse import ArgumentParser
 from binascii import hexlify
 from operator import itemgetter
