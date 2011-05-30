@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import operator
-import os
-from binascii import hexlify
 from argparse import ArgumentParser
+from binascii import hexlify
+from operator import itemgetter
 from PySide.QtCore import *
 from PySide.QtGui import *
 from pywow import wdbc
@@ -27,7 +26,7 @@ class WDBCClient(QApplication):
 	name = "WDBC Reader"
 	
 	def __init__(self, argv):
-		QApplication.__init__(self, argv)
+		super(WDBCClient, self).__init__(argv)
 		
 		QTextCodec.setCodecForCStrings(QTextCodec.codecForName("UTF-8"))
 		
@@ -62,7 +61,7 @@ class WDBCClient(QApplication):
 
 class MainWindow(QMainWindow):
 	def __init__(self, *args):
-		QMainWindow.__init__(self, *args)
+		super(MainWindow, self).__init__(*args)
 		
 		self.__addMenus()
 		self.__addToolbar()
@@ -145,7 +144,7 @@ class MainWindow(QMainWindow):
 
 class TableView(QTableView):
 	def __init__(self, *args):
-		QTableView.__init__(self, *args)
+		super(TableView, self).__init__(*args)
 		self.setSortingEnabled(True)
 		self.verticalHeader().setVisible(True)
 		self.verticalHeader().setDefaultSectionSize(25)
@@ -153,7 +152,7 @@ class TableView(QTableView):
 
 class TableModel(QAbstractTableModel):
 	def __init__(self, *args):
-		QAbstractTableModel.__init__(self, *args)
+		super(TableModel, self).__init__(*args)
 		self.itemData = []
 		self.rootData = []
 	
@@ -213,7 +212,7 @@ class TableModel(QAbstractTableModel):
 	
 	def sort(self, column, order=Qt.AscendingOrder):
 		self.layoutAboutToBeChanged.emit()
-		self.itemData = sorted(self.itemData, key=operator.itemgetter(column))
+		self.itemData = sorted(self.itemData, key=itemgetter(column))
 		if order == Qt.AscendingOrder:
 			self.itemData.reverse()
 		self.layoutChanged.emit()
