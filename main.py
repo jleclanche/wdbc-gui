@@ -204,7 +204,7 @@ class TableModel(QAbstractTableModel):
 	def setFile(self, file):
 		self.layoutAboutToBeChanged.emit()
 		self.file = file
-		self.itemData = file.rows()
+		self.itemData = file.values()
 		self.rootData = file.structure.column_names
 		self.structure = file.structure
 		msg = "%i rows - Using %s build %i" % (self.rowCount(), file.structure, file.build)
