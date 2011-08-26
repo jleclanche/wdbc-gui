@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os.path
+import sys
 from argparse import ArgumentParser
 from binascii import hexlify
 from operator import itemgetter
@@ -56,7 +57,12 @@ class WDBCClient(QApplication):
 		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
 
 	def open(self, path):
-		self.mainWindow.addTab(wdbc.open(path, self.defaultBuild))
+		try:
+			file = wdbc.open(path, self.defaultBuild)
+		except Exception, e:
+			sys.stderr.write("Could not open %s: %s\n" % (path, e))
+			return
+		self.mainWindow.addTab(file)
 		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
 
 
@@ -221,7 +227,6 @@ class TableModel(QAbstractTableModel):
 
 def main():
 	import signal
-	import sys
 	signal.signal(signal.SIGINT, signal.SIG_DFL)
 	app = WDBCClient(sys.argv[1:])
 
