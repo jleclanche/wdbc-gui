@@ -24,11 +24,11 @@ def price(value):
 	return g, s, c
 
 
-class WDBCClient(QApplication):
-	name = "WDBC Reader"
+class QTabulator(QApplication):
+	name = "QTabulator"
 
 	def __init__(self, args):
-		super(WDBCClient, self).__init__(args)
+		super(QTabulator, self).__init__(args)
 
 		QTextCodec.setCodecForCStrings(QTextCodec.codecForName("UTF-8"))
 
@@ -41,29 +41,26 @@ class WDBCClient(QApplication):
 		arguments.add_argument("-b", "--build", type=int, dest="build", default=0)
 		arguments.add_argument("--get", action="store_true", dest="get", help="get from the environment")
 		arguments.add_argument("files", nargs="*")
-		args = arguments.parse_args(args)
-		self.defaultBuild = args.build
+		self.args = arguments.parse_args(args)
 
 		self.mainWindow.statusBar().showMessage("Ready")
 
-		for name in args.files:
-			if args.get:
+		for name in self.args.files:
+			if self.args.get:
 				self.openByGet(name)
 			else:
 				self.open(name)
 
-	def openByGet(self, path):
-		self.mainWindow.addTab(wdbc.get(path, self.defaultBuild))
-		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
+	def openByGet(self, name):
+		file = wdbc.get(name, self.args.build)
+		self.mainWindow.addTab(file)
+		self.mainWindow.setWindowTitle("%s - %s" % (file.file.name, self.name))
 
 	def open(self, path):
-		try:
-			file = wdbc.open(path, self.defaultBuild)
-		except Exception, e:
-			sys.stderr.write("Could not open %s: %s\n" % (path, e))
-			return
+		f = open(path, "rb")
+		file = wdbc.open(f, build=self.args.build)
 		self.mainWindow.addTab(file)
-		self.mainWindow.setWindowTitle("%s - %s" % (path, self.name))
+		self.mainWindow.setWindowTitle("%s - %s" % (file.file.name, self.name))
 
 
 class MainWindow(QMainWindow):
@@ -133,11 +130,12 @@ class MainWindow(QMainWindow):
 	def actionOpen(self):
 		filename, filters = QFileDialog.getOpenFileName(self, "Open file", "/var/www/sigrie/caches", "DBC/Cache files (*.dbc *.wdb *.db2 *.dba *.wcf)")
 		if filename:
-			file = wdbc.open(filename)
-			self.addTab(file)
+			self.addTab(filename)
 
 	def addTab(self, file):
-		view = TableView()
+		view = QTableView()
+		view.verticalHeader().setVisible(True)
+		view.verticalHeader().setDefaultSectionSize(25)
 		model = TableModel()
 		model.setFile(file)
 		view.setModel(model)
@@ -147,14 +145,6 @@ class MainWindow(QMainWindow):
 	def currentModel(self):
 		view = self.tabWidget.currentWidget()
 		return view._m_model # BUG
-
-
-class TableView(QTableView):
-	def __init__(self, *args):
-		super(TableView, self).__init__(*args)
-		self.setSortingEnabled(True)
-		self.verticalHeader().setVisible(True)
-		self.verticalHeader().setDefaultSectionSize(25)
 
 
 class TableModel(QAbstractTableModel):
@@ -200,7 +190,7 @@ class TableModel(QAbstractTableModel):
 		if orientation == Qt.Horizontal and role == Qt.DisplayRole:
 			return self.rootData[section]
 
-		return QAbstractItemModel.headerData(self, section, orientation, role)
+		return super(TableModel, self).headerData(section, orientation, role)
 
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
@@ -228,7 +218,7 @@ class TableModel(QAbstractTableModel):
 def main():
 	import signal
 	signal.signal(signal.SIGINT, signal.SIG_DFL)
-	app = WDBCClient(sys.argv[1:])
+	app = QTabulator(sys.argv[1:])
 
 	app.mainWindow.show()
 	sys.exit(app.exec_())
