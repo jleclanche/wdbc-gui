@@ -136,6 +136,7 @@ class MainWindow(QMainWindow):
 		view = QTableView()
 		view.verticalHeader().setVisible(True)
 		view.verticalHeader().setDefaultSectionSize(25)
+		view.setSortingEnabled(True)
 		model = TableModel()
 		model.setFile(file)
 		view.setModel(model)
