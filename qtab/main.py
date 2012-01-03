@@ -31,6 +31,7 @@ class QTabulator(QApplication):
 		super(QTabulator, self).__init__(args)
 
 		QTextCodec.setCodecForCStrings(QTextCodec.codecForName("UTF-8"))
+		QIcon.setThemeName("oxygen")
 
 		self.mainWindow = MainWindow()
 		self.mainWindow.setWindowTitle(self.name)
@@ -204,7 +205,7 @@ class TableModel(QAbstractTableModel):
 		self.itemData = file.values()
 		self.rootData = file.structure.column_names
 		self.structure = file.structure
-		msg = "%i rows - Using %s build %i" % (self.rowCount(), file.structure, file.build)
+		msg = "%i rows - Using %s structure %s build %i" % (self.rowCount(), file.__class__.__name__, file.structure, file.build)
 		qApp.mainWindow.statusBar().showMessage(msg)
 		self.layoutChanged.emit()
 
