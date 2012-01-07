@@ -39,7 +39,7 @@ class QTabulator(QApplication):
 		self.mainWindow.setMinimumSize(640, 480)
 
 		arguments = ArgumentParser(prog="wdbc")
-		arguments.add_argument("-b", "--build", type=int, dest="build", default=0)
+		arguments.add_argument("-b", "--build", type=int, dest="build", default=-1)
 		arguments.add_argument("--get", action="store_true", dest="get", help="get from the environment")
 		arguments.add_argument("files", nargs="*")
 		self.args = arguments.parse_args(args)
@@ -188,6 +188,21 @@ class TableModel(QAbstractTableModel):
 
 			return cell
 
+	def canFetchMore(self, parent):
+		if len(self.file) > self.rowCount():
+			return True
+		return False
+
+	def fetchMore(self, parent):
+		fileCount = self.rowCount()
+		remainder = len(self.file) - fileCount
+		itemsToFetch = min(10000, remainder)
+
+		self.beginInsertRows(QModelIndex(), fileCount, fileCount + itemsToFetch)
+		for row in self.file[fileCount:fileCount + itemsToFetch]:
+			self.itemData.append(row)
+		self.endInsertRows()
+
 	def headerData(self, section, orientation, role):
 		if orientation == Qt.Horizontal and role == Qt.DisplayRole:
 			return self.rootData[section]
@@ -202,7 +217,10 @@ class TableModel(QAbstractTableModel):
 	def setFile(self, file):
 		self.layoutAboutToBeChanged.emit()
 		self.file = file
-		self.itemData = file.values()
+		if len(self.file) > 10000:
+			self.itemData = []
+		else:
+			self.itemData = file.values()
 		self.rootData = file.structure.column_names
 		self.structure = file.structure
 		msg = "%i rows - Using %s structure %s build %i" % (self.rowCount(), file.__class__.__name__, file.structure, file.build)
